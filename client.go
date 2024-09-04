@@ -80,7 +80,6 @@ func (c *Client) Customer(token string, email string) (*Customer, error) {
 		return nil, err
 	}
 	if res.StatusCode >= 400 {
-		fmt.Println(string(body))
 		return nil, parseError(body)
 	}
 	//fmt.Println(string(body))
@@ -111,11 +110,9 @@ func (c *Client) Charge(customerId string, amount int) (*Charge, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(res.StatusCode)
 	if res.StatusCode >= 400 {
 		return nil, parseError(body)
 	}
-	fmt.Println(res.StatusCode)
 	//fmt.Println(string(body))
 	var chg Charge
 	err = json.Unmarshal(body, &chg)
