@@ -22,7 +22,6 @@ func TestError_Unmarshal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unmarshal expected error to be nil, got %s", err)
 	}
-
 	wantDocURL := "https://stripe.com/docs/error-codes/resource-missing"
 	if se.DocURL != wantDocURL {
 		t.Errorf("DOCURL = %s wamt %s", se.DocURL, wantDocURL)
