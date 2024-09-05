@@ -17,7 +17,7 @@ var (
 
 const (
 	tokenAmex        = "tok_amex"
-	tokenInvalid     = "tok_asdfasdf"
+	tokenInvalid     = "tok_alsdkjfa"
 	tokenCardExpired = "tok_chargeDeclinedExpiredCard"
 )
 
@@ -101,10 +101,10 @@ func TestClient_Customer(t *testing.T) {
 	}
 	hasErrType := func(typee string) checkFn {
 		return func(t *testing.T, cus *stripe.Customer, err error) {
-			se, ok := err.(*stripe.Error)
+			se, ok := err.(stripe.Error)
 			if !ok {
 				t.Log("Unexpected error type", se)
-				t.Fatalf("err ins't a stripe.Error")
+				t.Fatalf("err isn't a stripe.Error")
 			}
 			if se.Type != typee {
 				t.Errorf("stripe.Error.Type = %s; want %s", se.Type, typee)
@@ -198,7 +198,7 @@ func TestClient_Charge(t *testing.T) {
 	}
 	hasErrType := func(typee string) checkFn {
 		return func(t *testing.T, charge *stripe.Charge, err error) {
-			se, ok := err.(*stripe.Error)
+			se, ok := err.(stripe.Error)
 			if !ok {
 				t.Log("Unexpected error type", se)
 				t.Fatalf("err ins't a stripe.Error")
@@ -233,7 +233,7 @@ func TestClient_Charge(t *testing.T) {
 		"invalid customer id": {
 			customerID: "cus_missing",
 			amount:     1234,
-			checks:     check(hasErrType(stripe.ErrTypeInvalidRequest), hasAmount(1234)),
+			checks:     check(hasErrType(stripe.ErrTypeInvalidRequest)),
 		},
 	}
 

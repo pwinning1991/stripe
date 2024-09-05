@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	ErrTypeInvalidRequest = "invalid_request"
+	ErrTypeInvalidRequest = "invalid_request_error"
 	ErrTypeCardError      = "card_error"
 )
 
