@@ -1,11 +1,14 @@
 package stripe_test
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/pwinning1991/stripe"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -92,8 +95,9 @@ func stripeClient(t *testing.T) (*stripe.Client, func()) {
 		rc := &recorderClient{}
 		c.HttpClient = rc
 		teardown = append(teardown, func() {
-			for _, res := range rc.responses {
-				t.Logf("Pretending to save res: %v\n", res)
+			for i, res := range rc.responses {
+				//t.Logf("Pretending to save res: %v\n", res)
+				recordResponse(t, res, i)
 			}
 		})
 	}
@@ -103,6 +107,27 @@ func stripeClient(t *testing.T) (*stripe.Client, func()) {
 		}
 	}
 
+}
+
+func recordResponse(t *testing.T, resp response, count int) {
+	path := filepath.Join("testdata", fmt.Sprintf("%s.%d.json", t.Name(), count))
+	err := os.MkdirAll(filepath.Dir(path), 0755)
+	if err != nil {
+		t.Fatalf("failed to create the reponse dir: %s. err = %v", filepath.Dir(path), err)
+	}
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatalf("failed to create the reponse file: %s. err = %v", path, err)
+	}
+	defer f.Close()
+	jsonBytes, err := json.MarshalIndent(resp, "", " ")
+	if err != nil {
+		t.Fatalf("failed to marshal response to JSON: %s. err = %v", path, err)
+	}
+	_, err = f.Write(jsonBytes)
+	if err != nil {
+		t.Fatalf("failed to write to reponse file: %s. err = %v", path, err)
+	}
 }
 
 func TestClient_Customer(t *testing.T) {
