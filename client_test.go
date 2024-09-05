@@ -12,6 +12,7 @@ import (
 
 var (
 	apiKey string
+	update bool
 )
 
 const (
@@ -25,6 +26,7 @@ const (
 func init() {
 	flag.StringVar(&apiKey, "key", "", "Your TEST secret key for the Stripe API."+
 		"If present, integartion tests will be run using this API key.")
+	flag.BoolVar(&update, "update", false, "Update the responses used in local tests.")
 }
 
 func TestClient_Local(t *testing.T) {
