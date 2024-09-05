@@ -83,6 +83,28 @@ func TestClient_Local(t *testing.T) {
 	}
 }
 
+func stripeClient(t *testing.T) (*stripe.Client, func()) {
+	teardown := make([]func(), 0)
+	c := stripe.Client{
+		Key: apiKey,
+	}
+	if update {
+		rc := &recorderClient{}
+		c.HttpClient = rc
+		teardown = append(teardown, func() {
+			for _, res := range rc.responses {
+				t.Logf("Pretending to save res: %v\n", res)
+			}
+		})
+	}
+	return &c, func() {
+		for _, fn := range teardown {
+			fn()
+		}
+	}
+
+}
+
 func TestClient_Customer(t *testing.T) {
 	if apiKey == "" {
 		t.Skip("No TEST API key provided.")
@@ -137,10 +159,6 @@ func TestClient_Customer(t *testing.T) {
 
 	}
 
-	c := stripe.Client{
-		Key: apiKey,
-	}
-
 	test := map[string]struct {
 		token  string
 		email  string
@@ -164,6 +182,8 @@ func TestClient_Customer(t *testing.T) {
 	}
 	for name, tc := range test {
 		t.Run(name, func(t *testing.T) {
+			c, teardown := stripeClient(t)
+			defer teardown()
 			cus, err := c.Customer(tc.token, tc.email)
 			for _, check := range tc.checks {
 				check(t, cus, err)
@@ -208,10 +228,8 @@ func TestClient_Charge(t *testing.T) {
 			}
 		}
 	}
-
-	c := stripe.Client{
-		Key: apiKey,
-	}
+	c, teardown := stripeClient(t)
+	defer teardown()
 	//create customer for the test
 	tok := tokenAmex
 	email := "test@test.com"
@@ -239,6 +257,8 @@ func TestClient_Charge(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
+			c, teardown := stripeClient(t)
+			defer teardown()
 			amount := 1234
 			charge, err := c.Charge(tc.customerID, amount)
 			for _, check := range tc.checks {
