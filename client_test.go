@@ -20,16 +20,21 @@ var (
 )
 
 const (
-	tokenAmex        = "tok_amex"
-	tokenInvalid     = "tok_alsdkjfa"
-	tokenCardExpired = "tok_chargeDeclinedExpiredCard"
+	tokenAmex               = "tok_amex"
+	tokenVisaDebit          = "tok_visa_debit"
+	tokenMastercardPrepaid  = "tok_mastercard_prepaid"
+	tokenInvalid            = "tok_alsdkjfa"
+	tokenExpiredCard        = "tok_chargeDeclinedExpiredCard"
+	tokenIncorrectCVC       = "tok_chargeDeclinedIncorrectCvc"
+	tokenInsufficientFunds  = "tok_chargeDeclinedInsufficientFunds"
+	tokenChargeCustomerFail = "tok_chargeCustomerFail"
 )
 
 //sk_test_4eC39HqLyjWDarjtT1zdp7dc
 
 func init() {
 	flag.StringVar(&apiKey, "key", "", "Your TEST secret key for the Stripe API."+
-		"If present, integartion tests will be run using this API key.")
+		"If present, integration tests will be run using this API key.")
 	flag.BoolVar(&update, "update", false, "Update the responses used in local tests.")
 }
 
@@ -238,7 +243,17 @@ func TestClient_Customer(t *testing.T) {
 			checks: check(hasErrType(stripe.ErrTypeInvalidRequest)),
 		},
 		"expired card": {
-			token:  tokenCardExpired,
+			token:  tokenExpiredCard,
+			email:  "test@example.com",
+			checks: check(hasErrType(stripe.ErrTypeCardError)),
+		},
+		"incorrect cvc": {
+			token:  tokenIncorrectCVC,
+			email:  "test@example.com",
+			checks: check(hasErrType(stripe.ErrTypeCardError)),
+		},
+		"insufficient funds": {
+			token:  tokenInsufficientFunds,
 			email:  "test@example.com",
 			checks: check(hasErrType(stripe.ErrTypeCardError)),
 		},
@@ -308,10 +323,20 @@ func TestClient_Charge(t *testing.T) {
 		amount     int
 		checks     []checkFn
 	}{
-		"valid charge": {
+		"valid charge with amex": {
 			customerID: customerviaToken(tokenAmex),
 			amount:     1234,
 			checks:     check(hasNoErr(), hasAmount(1234)),
+		},
+		"valid charge with visa debit": {
+			customerID: customerviaToken(tokenVisaDebit),
+			amount:     8787,
+			checks:     check(hasNoErr(), hasAmount(8787)),
+		},
+		"valid charge with mastecard prepaid": {
+			customerID: customerviaToken(tokenMastercardPrepaid),
+			amount:     98765,
+			checks:     check(hasNoErr(), hasAmount(98765)),
 		},
 		"invalid customer id": {
 			customerID: func(*testing.T, *stripe.Client) string {
@@ -320,6 +345,11 @@ func TestClient_Charge(t *testing.T) {
 			amount: 1234,
 			checks: check(hasErrType(stripe.ErrTypeInvalidRequest)),
 		},
+		"charge missing": {
+			customerID: customerviaToken(tokenChargeCustomerFail),
+			amount:     4545,
+			checks:     check(hasErrType(stripe.ErrTypeCardError)),
+		},
 	}
 
 	for name, tc := range tests {
@@ -327,8 +357,7 @@ func TestClient_Charge(t *testing.T) {
 			c, teardown := stripeClient(t)
 			defer teardown()
 			cusID := tc.customerID(t, c)
-			amount := 1234
-			charge, err := c.Charge(cusID, amount)
+			charge, err := c.Charge(cusID, tc.amount)
 			for _, check := range tc.checks {
 				check(t, charge, err)
 			}
